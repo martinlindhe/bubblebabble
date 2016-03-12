@@ -27,7 +27,7 @@ func ExampleEncodeToString() {
 	// Output: xigak-nyryk-humil-bosek-sonax
 }
 
-func ExampleDecodeData() {
+func ExampleDecode() {
 
 	encoded := []byte("xigak-nyryk-humil-bosek-sonax")
 
