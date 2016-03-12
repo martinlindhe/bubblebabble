@@ -1,9 +1,7 @@
-package babble
+package bubblebabble
 
 import (
 	"bytes"
-	"os"
-	"strings"
 	"testing"
 )
 
@@ -12,7 +10,7 @@ type testpair struct {
 }
 
 func makePair(dec, enc string) testpair {
-	return testpair{strings.Bytes(dec), strings.Bytes(enc)}
+	return testpair{[]byte(dec), []byte(enc)}
 }
 
 var pairs = []testpair{
@@ -51,11 +49,11 @@ func TestDecode(t *testing.T) {
 
 type corruptPair struct {
 	encoded []byte
-	err     os.Error
+	err     error
 }
 
-func makeCorrupt(enc string, err os.Error) corruptPair {
-	return corruptPair{strings.Bytes(enc), err}
+func makeCorrupt(enc string, err error) corruptPair {
+	return corruptPair{[]byte(enc), err}
 }
 
 var corrupts = []corruptPair{

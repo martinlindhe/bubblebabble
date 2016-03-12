@@ -1,18 +1,14 @@
-// Package babble implements Bubble Babble encoding and decoding, as specified
+// Package bubblebabble implements Bubble Babble encoding and decoding, as specified
 // by http://wiki.yak.net/589.
-package babble
+package bubblebabble
 
-import (
-	"os"
-	"strconv"
-	"strings"
-)
+import "fmt"
 
 // The table of Babble vowels.
-var vow = strings.Bytes("aeiouy")
+var vow = []byte("aeiouy")
 
 // The table of Babble consonants.
-var con = strings.Bytes("bcdfghklmnprstvzx")
+var con = []byte("bcdfghklmnprstvzx")
 
 // updateChecksum calculates a new Babble checksum value based on the next two
 // bytes of input data.
@@ -84,8 +80,8 @@ func EncodeToString(src []byte) string {
 
 type CorruptInputError int64
 
-func (e CorruptInputError) String() string {
-	return "illegal Bubble Babble data at input byte " + strconv.Itoa64(int64(e))
+func (e CorruptInputError) Error() string {
+	return fmt.Sprintf("illegal Bubble Babble data at input byte %08x", int64(e))
 }
 
 // devowel converts Babble vowels into the corresponding data values.
@@ -115,7 +111,7 @@ func hyphen(char byte) (dummy byte, ok bool) { return 0, char == '-' }
 
 // decodeTuple converts a full Bubble Babble string tuple or a data-carrying
 // partial tuple into the corresponding byte tuple.
-func decodeTuple(offset int64, src []byte, decodeFullTuple bool) (result [5]byte, err os.Error) {
+func decodeTuple(offset int64, src []byte, decodeFullTuple bool) (result [5]byte, err error) {
 	lut := [](func(byte) (byte, bool)){devowel, deconsonant, devowel, deconsonant, hyphen, deconsonant}
 	idx := []int{0, 1, 2, 3, -1, 4}
 	for i := 0; i < 6; i++ {
@@ -136,7 +132,7 @@ func decodeTuple(offset int64, src []byte, decodeFullTuple bool) (result [5]byte
 // decode3WayByte decodes a byte that has been encoded into three Babble
 // characters. Returns an error if the data is invalid or if it fails a
 // checksum check.
-func decode3WayByte(offset int64, a1, a2, a3 byte, c byte) (result byte, err os.Error) {
+func decode3WayByte(offset int64, a1, a2, a3 byte, c byte) (result byte, err error) {
 	high2 := (int(a1) - int(c%6) + 6) % 6
 	if high2 >= 4 {
 		err = CorruptInputError(offset)
@@ -159,7 +155,7 @@ func decode3WayByte(offset int64, a1, a2, a3 byte, c byte) (result byte, err os.
 // decode2WayByte decodes a byte that has been encoded into two Babble
 // characters. This type of encoding uses all the available bits to represent
 // data, so a checksum value is not used.
-func decode2WayByte(offset int64, a1, a2 byte) (result byte, err os.Error) {
+func decode2WayByte(offset int64, a1, a2 byte) (result byte, err error) {
 	if a1 > 16 {
 		err = CorruptInputError(offset)
 		return
@@ -175,9 +171,12 @@ func decode2WayByte(offset int64, a1, a2 byte) (result byte, err os.Error) {
 
 // Decode decodes a Babble string into the corresponding byte array. Returns
 // the number of bytes decoded, and an error if the string isn't a Babble string.
-func Decode(dst, src []byte) (n int, err os.Error) {
+func Decode(dst, src []byte) (int, error) {
 	nTuples := len(src) / 6
 	c := byte(1)
+
+	n := 0
+	var err error
 
 	// Babble strings must be made of one or more hyphen-separated groups of five characters.
 	switch {
@@ -187,18 +186,15 @@ func Decode(dst, src []byte) (n int, err os.Error) {
 		// More than one groups, ok.
 	default:
 		// Bad string length
-		err = CorruptInputError(0)
-		return
+		return n, CorruptInputError(0)
 	}
 
 	// Babble strings must start and end with 'x'.
 	if src[0] != 'x' {
-		err = CorruptInputError(0)
-		return
+		return n, CorruptInputError(0)
 	}
 	if src[len(src)-1] != 'x' {
-		err = CorruptInputError(len(src) - 1)
-		return
+		return n, CorruptInputError(len(src) - 1)
 	}
 
 	src = src[1:len(src)]
@@ -208,17 +204,17 @@ func Decode(dst, src []byte) (n int, err os.Error) {
 	for i := 0; i < nTuples; i++ {
 		t, err := decodeTuple(offset, src, true)
 		if err != nil {
-			return
+			return n, err
 		}
 
 		d1, err := decode3WayByte(offset, t[0], t[1], t[2], c)
 		if err != nil {
-			return
+			return n, err
 		}
 
 		d2, err := decode2WayByte(offset+int64(4), t[3], t[4])
 		if err != nil {
-			return
+			return n, err
 		}
 		c = updateChecksum(c, d1, d2)
 		dst[i*2] = d1
@@ -231,37 +227,35 @@ func Decode(dst, src []byte) (n int, err os.Error) {
 	// Decode the final partial tuple.
 	t, err := decodeTuple(offset, src, false)
 	if err != nil {
-		return
+		return n, err
 	}
 
 	if t[1] == 16 {
 		// No last byte, final tuple is just checksum data.
 		n = nTuples * 2
 		if t[0] != c%6 {
-			err = CorruptInputError(offset)
-			return
+			return n, CorruptInputError(offset)
 		}
 		if t[2] != c/6 {
-			err = CorruptInputError(offset + 2)
-			return
+			return n, CorruptInputError(offset + 2)
 		}
 	} else {
 		// Partial tuple contains one last byte of data, decode it.
 		n = nTuples*2 + 1
 		d, err := decode3WayByte(offset, t[0], t[1], t[2], c)
 		if err != nil {
-			return
+			return n, err
 		}
 		dst[nTuples*2] = d
 	}
 
-	return
+	return n, nil
 }
 
 // DecodeString decodes a babble string, returning the resulting byte array.
-func DecodeString(src string) (result []byte, err os.Error) {
+func DecodeString(src string) (result []byte, err error) {
 	result = make([]byte, MaxDecodedLen(len(src)))
-	n, err := Decode(result, strings.Bytes(src))
+	n, err := Decode(result, []byte(src))
 	if err != nil {
 		return
 	}
