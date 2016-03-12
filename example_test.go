@@ -17,6 +17,16 @@ func ExampleEncode() {
 	// Output: xigak-nyryk-humil-bosek-sonax
 }
 
+func ExampleEncodeToString() {
+
+	data := []byte("Pineapple")
+
+	dst := bubblebabble.EncodeToString(data)
+
+	fmt.Printf(dst)
+	// Output: xigak-nyryk-humil-bosek-sonax
+}
+
 func ExampleDecodeData() {
 
 	encoded := []byte("xigak-nyryk-humil-bosek-sonax")
