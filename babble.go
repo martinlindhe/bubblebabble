@@ -127,7 +127,7 @@ func decode(dst, src []byte) (int, error) {
 		return n, CorruptInputError(len(src) - 1)
 	}
 
-	src = src[1:len(src)]
+	src = src[1:]
 	offset := int64(1)
 
 	// Decode the full tuples.
@@ -150,7 +150,7 @@ func decode(dst, src []byte) (int, error) {
 		dst[i*2] = d1
 		dst[i*2+1] = d2
 
-		src = src[6:len(src)]
+		src = src[6:]
 		offset += 6
 	}
 
