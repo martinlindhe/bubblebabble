@@ -13,13 +13,11 @@ var con = []byte("bcdfghklmnprstvzx")
 // updateChecksum calculates a new Babble checksum value based on the next two
 // bytes of input data.
 func updateChecksum(c, data1, data2 byte) byte {
-
 	return byte((int(c)*5 + (int(data1)*7 + int(data2))) % 36)
 }
 
 // EncodedLen returns the number of bytes an encoded n bytes will take.
 func EncodedLen(n int) int {
-
 	nTuples := n / 2
 	partialTuple := 3
 	terminators := 2
@@ -31,7 +29,6 @@ func EncodedLen(n int) int {
 // string of length n will take. There may be a difference of one byte in the
 // result length for the same input length depending on the content.
 func MaxDecodedLen(n int) int {
-
 	if n == 5 {
 		// Only the partial tuple present.
 		return 1
@@ -43,7 +40,6 @@ func MaxDecodedLen(n int) int {
 // Encode encodes src into EncodedLen(len(src)) bytes of dst as Bubble Babble
 // code.
 func Encode(dst, src []byte) int {
-
 	dst[0] = 'x'
 	c := byte(1)
 	numIter := len(src)/2 + 1
@@ -77,7 +73,6 @@ func Encode(dst, src []byte) int {
 
 // EncodeToString returns the Bubble Babble encoding of src.
 func EncodeToString(src []byte) string {
-
 	dst := make([]byte, EncodedLen(len(src)))
 	Encode(dst, src)
 	return string(dst)
@@ -92,21 +87,15 @@ func (e CorruptInputError) Error() string {
 // Decode decodes a Babble string into the corresponding byte array. Returns
 // the number of bytes decoded, and an error if the string isn't a Babble string.
 func Decode(dst, src []byte) (int, error) {
-
 	n, err := decode(dst, src)
-
-	dst = dst[0:n] // XXX shrink dont seem to affect the resulting dst...
-
 	return n, err
 }
 
 func decode(dst, src []byte) (int, error) {
-
 	nTuples := len(src) / 6
 	c := byte(1)
 
 	n := 0
-	var err error
 
 	// Babble strings must be made of one or more hyphen-separated groups of five characters.
 	switch {
@@ -184,7 +173,6 @@ func decode(dst, src []byte) (int, error) {
 
 // DecodeString decodes a babble string, returning the resulting byte array.
 func DecodeString(src string) (result []byte, err error) {
-
 	result = make([]byte, MaxDecodedLen(len(src)))
 	n, err := Decode(result, []byte(src))
 	if err != nil {
@@ -196,7 +184,6 @@ func DecodeString(src string) (result []byte, err error) {
 
 // devowel converts Babble vowels into the corresponding data values.
 func devowel(char byte) (idx byte, ok bool) {
-
 	for i, c := range vow {
 		if char == c {
 			return byte(i), true
@@ -207,7 +194,6 @@ func devowel(char byte) (idx byte, ok bool) {
 
 // deconsonant converts Babble consonants into the corresponding data values.
 func deconsonant(char byte) (idx byte, ok bool) {
-
 	for i, c := range con {
 		if char == c {
 			return byte(i), true
@@ -224,8 +210,7 @@ func hyphen(char byte) (dummy byte, ok bool) { return 0, char == '-' }
 // decodeTuple converts a full Bubble Babble string tuple or a data-carrying
 // partial tuple into the corresponding byte tuple.
 func decodeTuple(offset int64, src []byte, decodeFullTuple bool) (result [5]byte, err error) {
-
-	lut := [](func(byte) (byte, bool)){devowel, deconsonant, devowel, deconsonant, hyphen, deconsonant}
+	lut := []func(byte) (byte, bool){devowel, deconsonant, devowel, deconsonant, hyphen, deconsonant}
 	idx := []int{0, 1, 2, 3, -1, 4}
 	for i := 0; i < 6; i++ {
 		val, ok := lut[i](src[i])
@@ -245,8 +230,7 @@ func decodeTuple(offset int64, src []byte, decodeFullTuple bool) (result [5]byte
 // decode3WayByte decodes a byte that has been encoded into three Babble
 // characters. Returns an error if the data is invalid or if it fails a
 // checksum check.
-func decode3WayByte(offset int64, a1, a2, a3 byte, c byte) (result byte, err error) {
-
+func decode3WayByte(offset int64, a1, a2, a3, c byte) (result byte, err error) {
 	high2 := (int(a1) - int(c%6) + 6) % 6
 	if high2 >= 4 {
 		err = CorruptInputError(offset)
@@ -270,7 +254,6 @@ func decode3WayByte(offset int64, a1, a2, a3 byte, c byte) (result byte, err err
 // characters. This type of encoding uses all the available bits to represent
 // data, so a checksum value is not used.
 func decode2WayByte(offset int64, a1, a2 byte) (result byte, err error) {
-
 	if a1 > 16 {
 		err = CorruptInputError(offset)
 		return
@@ -279,7 +262,6 @@ func decode2WayByte(offset int64, a1, a2 byte) (result byte, err error) {
 		err = CorruptInputError(offset + 1)
 		return
 	}
-
 	result = (a1 << 4) | a2
 	return
 }

@@ -27,7 +27,7 @@ func TestEncode(t *testing.T) {
 		if n != len(dst) {
 			t.Errorf("#%d: Encode returned %d, expected %d", i, n, len(dst))
 		}
-		if bytes.Compare(dst, p.encoded) != 0 {
+		if !bytes.Equal(dst, p.encoded) {
 			t.Errorf("#%d: Encode encoded %#v, expected %#v", i, string(dst), string(p.encoded))
 		}
 	}
@@ -41,7 +41,7 @@ func TestDecode(t *testing.T) {
 		if err != nil {
 			t.Errorf("#%d: Decoding %#v caused error %#v", i, string(p.encoded), err)
 		}
-		if bytes.Compare(dst, p.decoded) != 0 {
+		if !bytes.Equal(dst, p.decoded) {
 			t.Errorf("#%d: Decode decoded %#v, expected %#v", i, string(dst), string(p.decoded))
 		}
 	}
